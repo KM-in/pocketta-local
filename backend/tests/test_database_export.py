@@ -17,6 +17,11 @@ def test_database_round_trip_and_markdown_evidence(tmp_path: Path) -> None:
     lecture = database.get_lecture("lecture-1")
     assert lecture is not None
     output = render_markdown(lecture)
+    assert "## Recording metadata" in output
+    assert "**Source file:** safe.mp3" in output
+    assert "**Duration:** 00:01" in output
+    assert "## Summary" in output
+    assert "## Uncertainty warnings" in output
     assert "[seg-0001](#seg-0001)" in output
     assert '<a id="seg-0001"></a>' in output
     assert database.delete("lecture-1") is True

@@ -58,5 +58,8 @@ export interface LectureDetail extends LectureSummary {
 
 export interface HealthResponse {
   ready: boolean;
-  components: Record<string, { ready: boolean; detail: string }>;
+  components: Record<
+    string,
+    { ready: boolean; detail: string; remediation: string | null }
+  >;
 }

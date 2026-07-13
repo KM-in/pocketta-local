@@ -36,7 +36,14 @@ class LMStudioService:
     async def generate(self, transcript: Transcript) -> StudyPack:
         if not self.settings.lm_studio_model_id:
             raise LMStudioError("LM_STUDIO_MODEL_ID is not configured")
-        prompt = _transcript_prompt(transcript)
+        reliable_segments = [
+            segment for segment in transcript.segments if not segment.uncertain
+        ]
+        if not reliable_segments:
+            raise LMStudioError(
+                "Transcript saved, but there is not enough reliable speech to build a study pack"
+            )
+        prompt = _transcript_prompt(transcript, reliable_only=True)
         error_context = ""
         for attempt in range(2):
             messages = [
@@ -94,18 +101,27 @@ class LMStudioService:
                 response.raise_for_status()
             return _extract_content(response.json())
         except (httpx.HTTPError, KeyError, IndexError, TypeError, ValueError) as error:
-            raise LMStudioError(f"LM Studio request failed: {error}") from error
+            detail = str(error).strip() or error.__class__.__name__
+            raise LMStudioError(f"LM Studio request failed: {detail}") from error
 
 
-def _transcript_prompt(transcript: Transcript) -> str:
+def _transcript_prompt(transcript: Transcript, *, reliable_only: bool = True) -> str:
+    segments = (
+        [segment for segment in transcript.segments if not segment.uncertain]
+        if reliable_only
+        else transcript.segments
+    )
     lines = [
         f"{segment.id} [{_timestamp(segment.start_ms)}-{_timestamp(segment.end_ms)}] "
         f"{segment.text}"
-        for segment in transcript.segments
+        for segment in segments
     ]
     return (
-        "Create notes, key concepts, flashcards, and multiple-choice quiz questions "
-        "from this lecture transcript. Cite evidence using segment_ids.\n\n"
+        "Create notes, 3-8 key concepts, 5-10 flashcards, and 5-8 "
+        "multiple-choice quiz questions from this lecture transcript when the source "
+        "contains enough material; return fewer rather than inventing content. Cite "
+        "evidence using segment_ids. Segments marked uncertain were intentionally "
+        "excluded, so do not infer missing content.\n\n"
         + "\n".join(lines)
     )
 

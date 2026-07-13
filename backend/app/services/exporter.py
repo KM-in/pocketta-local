@@ -7,7 +7,35 @@ def render_markdown(lecture: LectureDetail) -> str:
     if not lecture.transcript or not lecture.study_pack:
         raise ValueError("Lecture is not ready for export")
     pack = lecture.study_pack
-    lines = [f"# {pack.title}", "", pack.overview, "", "## Notes", ""]
+    uncertain = [segment for segment in lecture.transcript.segments if segment.uncertain]
+    lines = [
+        f"# {pack.title}",
+        "",
+        "## Recording metadata",
+        "",
+        f"- **Source file:** {lecture.original_filename}",
+        f"- **Duration:** {_duration(lecture.transcript.duration_ms)}",
+        f"- **Created:** {lecture.created_at.isoformat()}",
+        "- **Processing:** Generated locally with PocketTA; no cloud AI is required.",
+        "",
+        "## Summary",
+        "",
+        pack.overview,
+        "",
+        "## Uncertainty warnings",
+        "",
+    ]
+    if uncertain:
+        lines.append(
+            f"{len(uncertain)} transcript segment(s) were marked uncertain and excluded "
+            "from evidence for confident study material: "
+            + ", ".join(
+                f"[{segment.id}](#{segment.id})" for segment in uncertain
+            )
+        )
+    else:
+        lines.append("No transcript segments were marked uncertain.")
+    lines.extend(["", "## Notes", ""])
     for note in pack.notes:
         lines.extend(
             [f"### {note.title}", "", note.body, "", _evidence(note.segment_ids), ""]
@@ -68,3 +96,12 @@ def _evidence(segment_ids: list[str]) -> str:
 def _timestamp(milliseconds: int) -> str:
     total_seconds = milliseconds // 1000
     return f"{total_seconds // 60:02d}:{total_seconds % 60:02d}"
+
+
+def _duration(milliseconds: int) -> str:
+    total_seconds = milliseconds // 1000
+    hours, remainder = divmod(total_seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    if hours:
+        return f"{hours:d}:{minutes:02d}:{seconds:02d}"
+    return f"{minutes:02d}:{seconds:02d}"

@@ -27,7 +27,7 @@ button:focus-visible, a:focus-visible, label:focus-within { outline: 3px solid r
 .brand-mark { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 11px; background: #e58b50; color: #262a25; font-family: Georgia, serif; font-weight: 800; font-size: 24px; }
 .brand div:last-child { display: flex; flex-direction: column; gap: 2px; }
 .brand strong { font-family: Georgia, serif; font-size: 20px; }
-.brand span, .readiness span, .empty-list { color: #aeb3aa; font-size: 12px; }
+.brand span, .readiness-copy > span, .empty-list { color: #aeb3aa; font-size: 12px; }
 .upload-small { display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; border-radius: 10px; padding: 12px; background: #f6f2e9; color: #252a25; font-weight: 700; }
 .upload-small input, .drop-zone input { position: absolute; opacity: 0; pointer-events: none; }
 .disabled { opacity: .6; pointer-events: none; }
@@ -39,8 +39,8 @@ button:focus-visible, a:focus-visible, label:focus-within { outline: 3px solid r
 .status { display: inline-flex; width: fit-content; padding: 3px 8px; border-radius: 999px; font-size: 10px; line-height: 1.2; text-transform: uppercase; letter-spacing: .08em; font-weight: 800; color: #765133; background: #f1dbc5; }
 .status.completed { color: #2f6551; background: #dbe9df; }
 .status.failed { color: #8f3932; background: #f2d8d5; }
-.readiness { margin-top: auto; display: flex; gap: 10px; padding: 14px 8px 2px; border-top: 1px solid #41463f; align-items: center; }
-.readiness div { display: flex; flex-direction: column; gap: 2px; }
+.readiness { margin-top: auto; width: 100%; display: flex; gap: 10px; padding: 14px 8px 2px; border: 0; border-top: 1px solid #41463f; align-items: center; color: inherit; background: transparent; cursor: pointer; text-align: left; }
+.readiness-copy { display: flex; flex-direction: column; gap: 2px; }
 .readiness strong { font-size: 12px; }
 .dot { width: 9px; height: 9px; flex: 0 0 auto; border-radius: 50%; background: #d3814b; box-shadow: 0 0 0 4px rgba(211,129,75,.14); }
 .readiness.ready .dot { background: #72b48e; box-shadow: 0 0 0 4px rgba(114,180,142,.14); }
@@ -65,10 +65,15 @@ h1 { font-size: clamp(40px, 6vw, 68px); line-height: .98; letter-spacing: -.035e
 .privacy-note p { margin: 4px 0 0; font-size: 12px; line-height: 1.5; }
 .setup-card, .processing-card, .failure-card { margin-top: 28px; border: 1px solid var(--line); border-radius: 16px; background: var(--paper); padding: 24px; }
 .setup-card h2, .processing-card h2, .failure-card h2 { margin: 0; }
+.setup-dialog { width: min(900px, calc(100% - 64px)); margin: 24px auto 0; }
+.setup-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
 .setup-card ul { padding: 0; margin: 20px 0 0; list-style: none; display: grid; gap: 10px; }
-.setup-card li { display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding-top: 10px; border-top: 1px solid #ece6da; font-size: 12px; }
+.setup-card li { display: grid; grid-template-columns: 130px 100px minmax(0, 1fr); gap: 12px; padding-top: 10px; border-top: 1px solid #ece6da; font-size: 12px; align-items: start; }
 .setup-card li strong { text-transform: capitalize; }
-.setup-card li span { color: var(--muted); font-family: ui-monospace, monospace; }
+.setup-card li code { color: var(--muted); font: 11px/1.5 ui-monospace, monospace; overflow-wrap: anywhere; }
+.setup-card li .component-ready { color: var(--green); font-size: 11px; font-weight: 800; }
+.setup-card li .component-missing { color: var(--red); font-size: 11px; font-weight: 800; }
+.setup-card li .remediation { grid-column: 3; color: #4c463b; background: #f0ece3; border-radius: 6px; padding: 7px 9px; user-select: all; }
 .error-banner { position: fixed; z-index: 10; left: 50%; top: 18px; transform: translateX(-40%); border: 1px solid #e2b3ad; background: #fff0ee; color: var(--red); border-radius: 9px; padding: 11px 16px; box-shadow: 0 10px 30px rgba(83,32,26,.12); }
 
 .lecture-page { padding-top: 54px; }
@@ -126,5 +131,7 @@ h1 { font-size: clamp(40px, 6vw, 68px); line-height: .98; letter-spacing: -.035e
   .header-actions { justify-content: flex-start; }
   .cards { grid-template-columns: 1fr; }
   .segment { grid-template-columns: 1fr; gap: 8px; }
+  .setup-dialog { width: min(100% - 30px, 720px); }
   .setup-card li { grid-template-columns: 1fr; }
+  .setup-card li .remediation { grid-column: 1; }
 }

@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     lm_studio_base_url: str = "http://127.0.0.1:1234/v1"
     lm_studio_model_id: str = ""
     lm_studio_api_key: str = ""
-    lm_studio_timeout_seconds: float = 180.0
+    lm_studio_timeout_seconds: float = 480.0
     max_audio_minutes: int = 15
     max_upload_mb: int = 200
     uncertain_confidence_threshold: float = 0.60
