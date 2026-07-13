@@ -13,6 +13,7 @@ function App() {
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [showSetup, setShowSetup] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -97,14 +98,28 @@ function App() {
             </button>
           ))}
         </nav>
-        <div className={`readiness ${health?.ready ? "ready" : "not-ready"}`}>
+        <button
+          type="button"
+          className={`readiness ${health?.ready ? "ready" : "not-ready"}`}
+          onClick={() => setShowSetup((current) => !current)}
+          aria-expanded={showSetup}
+        >
           <span className="dot" />
-          <div><strong>{health?.ready ? "Offline engine ready" : "Setup required"}</strong><span>{health?.ready ? "All processing stays here" : "Open readiness details"}</span></div>
-        </div>
+          <span className="readiness-copy"><strong>{health?.ready ? "Offline engine ready" : "Setup required"}</strong><span>{health?.ready ? "View local components" : "Open readiness details"}</span></span>
+        </button>
       </aside>
 
       <main>
         {error && <div className="error-banner" role="alert">{error}</div>}
+        {showSetup && health && (
+          <section className="setup-card setup-dialog" aria-label="Local engine readiness">
+            <div className="setup-heading">
+              <div><p className="eyebrow">Readiness</p><h2>Local engine components</h2></div>
+              <button type="button" className="button" onClick={() => setShowSetup(false)}>Close</button>
+            </div>
+            <ReadinessDetails health={health} />
+          </section>
+        )}
         {!selected ? (
           <Welcome health={health} busy={busy} upload={upload} />
         ) : (
@@ -136,11 +151,27 @@ function Welcome({ health, busy, upload }: { health: HealthResponse | null; busy
       {health && !health.ready && (
         <section className="setup-card">
           <div><p className="eyebrow">Readiness</p><h2>Finish local setup</h2></div>
-          <ul>{Object.entries(health.components).filter(([, value]) => !value.ready).map(([name, value]) => <li key={name}><strong>{name.replaceAll("_", " ")}</strong><span>{value.detail}</span></li>)}</ul>
+          <ReadinessDetails health={health} onlyFailures />
         </section>
       )}
       <div className="privacy-note"><span>⌂</span><div><strong>No cloud. No account. No tracking.</strong><p>Audio, transcript, and study materials live only in PocketTA’s local data folder until you delete them.</p></div></div>
     </div>
+  );
+}
+
+export function ReadinessDetails({ health, onlyFailures = false }: { health: HealthResponse; onlyFailures?: boolean }) {
+  const components = Object.entries(health.components).filter(([, value]) => !onlyFailures || !value.ready);
+  return (
+    <ul className="readiness-details">
+      {components.map(([name, value]) => (
+        <li key={name}>
+          <strong>{name.replaceAll("_", " ")}</strong>
+          <span className={value.ready ? "component-ready" : "component-missing"}>{value.ready ? "Ready" : "Needs attention"}</span>
+          <code>{value.detail}</code>
+          {!value.ready && value.remediation && <code className="remediation">{value.remediation}</code>}
+        </li>
+      ))}
+    </ul>
   );
 }
 

@@ -8,6 +8,9 @@ Install FFmpeg using the operating system package manager. Build whisper.cpp int
 
 Install LM Studio, download Qwen 3.5 4B while online, and load it manually with a context length of at least 16K. Start the local server in LM Studio's Developer tab on `127.0.0.1:1234`. PocketTA checks `/v1/models` but never starts the server, loads a model, or downloads one.
 
+PocketTA sends one generation request at a time, accepts LM Studio's structured content or reasoning-content response field, and rejects generated citations to uncertain transcript segments.
+The default request timeout is eight minutes because measured structured generation on the 8 GB reference machine can exceed six minutes for a 10-minute transcript.
+
 The prepared reference machine uses model identifier `qwen3.5-4b`, whisper.cpp commit `080bbbe85230f624f0b52127f1ae1218247989f9`, and `base.en` SHA-256 `b7518e435da610821f88090732a6c5c685e9194edf1214b9d36a0eb9dff2051b`.
 
 Windows uses the `.exe` whisper CLI path in `.env`. All application subprocess calls use argument arrays and portable paths rather than shell syntax.
@@ -30,3 +33,22 @@ The application contains no CDN, telemetry, cloud client, account, model downloa
 8. Delete the lecture and verify both its UUID directory and SQLite row are gone.
 
 Record OS, CPU, memory, whisper.cpp commit, model filenames, LM Studio version, recording duration, processing time, and peak memory for the hackathon demo.
+
+## Benchmark workflow
+
+```bash
+mkdir -p benchmark-results
+.venv/bin/python scripts/benchmark.py /path/to/consented-sample.mp4 \
+  --json-out benchmark-results/sample.json \
+  --markdown-out benchmark-results/sample.md
+```
+
+Run once while connected to establish setup, then twice after disabling Wi-Fi. The runner refuses to begin unless readiness is green. Its poll-based stage timings are approximate; total time covers upload start through the terminal API response.
+
+## Troubleshooting
+
+- **FFmpeg/FFprobe missing:** run the command shown in readiness, then restart FastAPI.
+- **Whisper missing:** build the pinned whisper.cpp checkout and verify `WHISPER_CLI_PATH`.
+- **LM Studio unavailable:** load Qwen 3.5 4B with a 16K context, start the Developer server, and copy its exact `/v1/models` ID into `.env`.
+- **Transcript exists but generation failed:** ensure the loaded model supports JSON-schema output and that reliable speech remains after uncertainty filtering.
+- **Recording rejected after upload:** convert corrupt media to WAV/MP3 or use a clip within the 15-minute limit.

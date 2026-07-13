@@ -43,3 +43,5 @@ ggml-*.bin
 *.tmp
 *.log
 backend/app.db
+/pocketta_test_10min.mp4
+/benchmark-results/

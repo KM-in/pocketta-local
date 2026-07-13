@@ -73,8 +73,11 @@ class StudyPack(BaseModel):
     flashcards: list[Flashcard] = Field(min_length=1)
     quiz: list[QuizQuestion] = Field(min_length=1)
 
-    def validate_evidence(self, transcript: Transcript) -> "StudyPack":
+    def validate_evidence(
+        self, transcript: Transcript, *, allow_uncertain: bool = False
+    ) -> "StudyPack":
         valid = {segment.id for segment in transcript.segments}
+        uncertain = {segment.id for segment in transcript.segments if segment.uncertain}
         cited: list[str] = []
         for collection in (self.notes, self.concepts, self.flashcards, self.quiz):
             for item in collection:
@@ -82,6 +85,12 @@ class StudyPack(BaseModel):
         invalid = sorted(set(cited) - valid)
         if invalid:
             raise ValueError(f"Unknown transcript segment IDs: {', '.join(invalid)}")
+        uncertain_citations = sorted(set(cited) & uncertain)
+        if uncertain_citations and not allow_uncertain:
+            raise ValueError(
+                "Uncertain transcript segments cannot support confident study material: "
+                + ", ".join(uncertain_citations)
+            )
         return self
 
 
@@ -102,6 +111,7 @@ class LectureDetail(LectureSummary):
 class HealthComponent(BaseModel):
     ready: bool
     detail: str
+    remediation: str | None = None
 
 
 class HealthResponse(BaseModel):

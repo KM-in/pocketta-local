@@ -55,6 +55,14 @@ def test_evidence_must_resolve_to_transcript() -> None:
         study_pack("seg-9999").validate_evidence(transcript())
 
 
+def test_uncertain_segments_cannot_support_confident_material() -> None:
+    source = transcript()
+    source.segments[0].uncertain = True
+    with pytest.raises(ValueError, match="Uncertain transcript segments"):
+        study_pack().validate_evidence(source)
+    assert study_pack().validate_evidence(source, allow_uncertain=True).title == "Test lecture"
+
+
 def test_quiz_answer_must_index_an_option() -> None:
     with pytest.raises(ValueError, match="correct_answer"):
         QuizQuestion(

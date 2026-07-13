@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import shutil
+import sys
 import uuid
 from pathlib import Path
 
@@ -16,6 +17,14 @@ from ..services.media import SUPPORTED_EXTENSIONS
 router = APIRouter(prefix="/api")
 
 
+def _install_ffmpeg() -> str:
+    if sys.platform == "darwin":
+        return "brew install ffmpeg"
+    if sys.platform == "win32":
+        return "winget install --id Gyan.FFmpeg"
+    return "sudo apt-get update && sudo apt-get install -y ffmpeg"
+
+
 @router.get("/health", response_model=HealthResponse)
 async def health(request: Request) -> HealthResponse:
     settings = request.app.state.settings
@@ -24,26 +33,38 @@ async def health(request: Request) -> HealthResponse:
         "database": HealthComponent(
             ready=settings.database_path.is_file(),
             detail=str(settings.database_path.resolve()),
+            remediation="Restart PocketTA so it can initialize its local database.",
         ),
         "storage": HealthComponent(
             ready=settings.pocketta_data_dir.is_dir(),
             detail=str(settings.pocketta_data_dir.resolve()),
+            remediation=f"mkdir -p {settings.lectures_dir}",
         ),
         "ffmpeg": HealthComponent(
             ready=settings.executable_available(settings.ffmpeg_path),
             detail=settings.ffmpeg_path,
+            remediation=_install_ffmpeg(),
         ),
         "ffprobe": HealthComponent(
             ready=settings.executable_available(settings.ffprobe_path),
             detail=settings.ffprobe_path,
+            remediation=_install_ffmpeg(),
         ),
         "whisper_cli": HealthComponent(
             ready=settings.executable_available(settings.whisper_cli_path),
             detail=str(settings.whisper_cli_path),
+            remediation=(
+                "cmake -S vendor/whisper.cpp -B vendor/whisper.cpp/build "
+                "-DCMAKE_BUILD_TYPE=Release && "
+                "cmake --build vendor/whisper.cpp/build --config Release -j 4"
+            ),
         ),
         "whisper_model": HealthComponent(
             ready=settings.whisper_model_path.is_file(),
             detail=str(settings.whisper_model_path),
+            remediation=(
+                "bash vendor/whisper.cpp/models/download-ggml-model.sh base.en"
+            ),
         ),
     }
     try:
@@ -56,11 +77,20 @@ async def health(request: Request) -> HealthResponse:
                 if configured and configured in models
                 else f"configure LM_STUDIO_MODEL_ID; available: {', '.join(models) or 'none'}"
             ),
+            remediation=(
+                "In LM Studio: download Qwen 3.5 4B, load it with a 16K context, "
+                "start the server on 127.0.0.1:1234, then copy its ID into "
+                "LM_STUDIO_MODEL_ID in .env."
+            ),
         )
     except (httpx.HTTPError, KeyError, TypeError, ValueError) as error:
         components["lm_studio"] = HealthComponent(
             ready=False,
             detail=f"Local server unavailable: {error}",
+            remediation=(
+                "Open LM Studio > Developer, load Qwen 3.5 4B, and start the "
+                "local server on 127.0.0.1:1234."
+            ),
         )
     return HealthResponse(
         ready=all(component.ready for component in components.values()),

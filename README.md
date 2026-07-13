@@ -2,6 +2,16 @@
 
 PocketTA Local turns lecture recordings into private, offline transcripts and evidence-linked study material on a student's laptop. FastAPI, SQLite, whisper.cpp, LM Studio, and React all run locally; the app binds only to loopback addresses.
 
+## What works
+
+- Upload WAV, MP3, M4A, or MP4 recordings up to 15 minutes/200 MB.
+- Normalize with FFmpeg and transcribe English locally with whisper.cpp.
+- Mark low-confidence transcript segments and exclude them from confident generated evidence.
+- Build notes, concepts, flashcards, and quizzes with Qwen 3.5 4B in LM Studio.
+- Trace generated items to transcript segments, persist results, export Markdown, and permanently delete data.
+
+The hackathon build intentionally omits recording, transcript editing, PDF, chat, diarisation, accounts, and cloud sync.
+
 ## Prerequisites
 
 - Python 3.11
@@ -53,6 +63,8 @@ npm run dev
 
 Open `http://127.0.0.1:5173`. The readiness panel identifies any missing local prerequisite.
 
+PocketTA never starts, loads, or downloads models. Failed readiness rows include the local command or LM Studio action needed to fix them.
+
 ## Verify
 
 ```bash
@@ -61,3 +73,44 @@ cd frontend && npm test && npm run build
 ```
 
 See [docs/README.md](docs/README.md) for native setup, cross-platform notes, and the offline acceptance checklist.
+
+## Benchmark a prepared machine
+
+With FastAPI and LM Studio running:
+
+```bash
+mkdir -p benchmark-results
+.venv/bin/python scripts/benchmark.py pocketta_test_10min.mp4 \
+  --json-out benchmark-results/ten-minute.json \
+  --markdown-out benchmark-results/ten-minute.md
+```
+
+The runner records observed stages and total time, then verifies evidence, uncertainty handling, summary presence, and demo item counts. Its output is ignored by Git.
+
+The hardened 10-minute run on the 8 GB reference machine completed in 390.2 seconds: 1.0s normalization, 23.8s transcription, and approximately 365s structured generation. It produced 188 transcript segments, 14 notes, 6 concepts, 6 flashcards, and 5 quiz questions; every cited ID resolved and the one uncertain segment was not cited. This run used localhost services, but Wi-Fi-off status was not independently captured and is not claimed.
+
+## Privacy and limitations
+
+PocketTA binds to loopback addresses, restricts the LM Studio URL to loopback, ignores proxy environment variables for model calls, and contains no analytics, CDN assets, cloud AI, accounts, or model downloader. Data remains under `POCKETTA_DATA_DIR` until deletion.
+
+Initial installation requires internet. Local execution reduces disclosure risk but is not a formal security proof, and generated material can be incomplete or wrong. Inspect its cited evidence.
+
+## Project documentation
+
+- [Architecture](docs/ARCHITECTURE.md)
+- [Operations and offline acceptance](docs/README.md)
+- [Demo runbook](docs/DEMO.md)
+- [Contributing](CONTRIBUTING.md)
+- [Security](SECURITY.md)
+
+## Model and runtime attribution
+
+| Component | Role | Licence/source | Included here? |
+|---|---|---|---|
+| PocketTA Local | Application | [MIT](LICENSE) | Yes |
+| whisper.cpp | Speech runtime | [MIT](https://github.com/ggml-org/whisper.cpp/blob/master/LICENSE) | No |
+| Whisper `base.en` | Speech model | [OpenAI Whisper](https://github.com/openai/whisper) | No |
+| Qwen 3.5 4B | Study-pack model | [Apache-2.0 model card](https://huggingface.co/Qwen/Qwen3.5-4B) | No |
+| LM Studio | Local model server | [LM Studio terms](https://lmstudio.ai/terms) | No |
+
+Dependencies retain their own licences. Models and runtime binaries must be installed separately.
