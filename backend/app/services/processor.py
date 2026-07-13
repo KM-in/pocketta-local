@@ -10,7 +10,7 @@ from ..models import LectureStatus
 from .lm_studio import LMStudioService
 from .media import MediaService
 from .processes import ProcessRegistry
-from .whisper import WhisperService
+from .whisper import TranscriptionService
 
 
 class LectureCancelled(RuntimeError):
@@ -24,7 +24,7 @@ class LectureProcessor:
         self.queue: asyncio.Queue[str] = asyncio.Queue()
         self.processes = ProcessRegistry()
         self.media = MediaService(settings, self.processes)
-        self.whisper = WhisperService(settings, self.processes)
+        self.transcription = TranscriptionService(settings, self.processes)
         self.lm_studio = LMStudioService(settings)
         self.cancelled: set[str] = set()
         self.active_tasks: dict[str, asyncio.Task] = {}
@@ -102,7 +102,7 @@ class LectureProcessor:
         self._check(lecture_id)
         self.database.update_status(lecture_id, LectureStatus.TRANSCRIBING)
         transcript = await asyncio.to_thread(
-            self.whisper.transcribe, lecture_id, normalized, duration_ms
+            self.transcription.transcribe, lecture_id, normalized, duration_ms
         )
         self._check(lecture_id)
         self.database.save_transcript(lecture_id, transcript)

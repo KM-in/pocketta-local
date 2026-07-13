@@ -8,9 +8,10 @@ PocketTA Local turns lecture recordings into private, offline transcripts and ev
 - Node.js 22 or newer
 - FFmpeg and FFprobe on `PATH`
 - A locally built whisper.cpp CLI and `ggml-base.en.bin`
+- Optional for NVIDIA GPUs: Faster Whisper, CUDA cuBLAS/cuDNN runtime libraries, and a prepared `turbo` model
 - LM Studio with the Qwen 3.5 4B model already downloaded
 
-The application never downloads a model. Prepare native tools and models while online, then use the complete workflow without Wi-Fi.
+Normal app startup, health checks, and lecture processing never download a model. Prepare native tools and models while online, then use the complete workflow without Wi-Fi.
 
 ## Clean project setup
 
@@ -35,6 +36,20 @@ curl http://127.0.0.1:1234/v1/models
 ```
 
 Set that value as `LM_STUDIO_MODEL_ID` in `.env`.
+
+For NVIDIA CUDA transcription, install the optional Python dependency while online:
+
+```bash
+.venv/bin/python -m pip install -r backend/requirements-faster-whisper.txt
+```
+
+Install the NVIDIA CUDA libraries required by Faster Whisper for your OS, then prepare the default `turbo` model while online:
+
+```bash
+.venv/bin/python -m backend.app.tools.prepare_faster_whisper
+```
+
+With `TRANSCRIPTION_BACKEND=auto`, PocketTA uses Faster Whisper when CUDA and the prepared model are ready, and otherwise falls back to whisper.cpp.
 
 ## Run
 

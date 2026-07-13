@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import shutil
 from pathlib import Path
+from typing import Literal
 from urllib.parse import urlparse
 
 from pydantic import field_validator
@@ -20,6 +21,12 @@ class Settings(BaseSettings):
     whisper_cli_path: Path = Path("./vendor/whisper.cpp/build/bin/whisper-cli")
     whisper_model_path: Path = Path("./vendor/whisper.cpp/models/ggml-base.en.bin")
     whisper_use_gpu: bool = False
+    transcription_backend: Literal["auto", "whisper_cpp", "faster_whisper"] = "auto"
+    faster_whisper_model_path: Path | None = None
+    faster_whisper_model_name: str = "turbo"
+    faster_whisper_compute_type: str = "float16"
+    faster_whisper_beam_size: int = 5
+    faster_whisper_vad_filter: bool = False
     lm_studio_base_url: str = "http://127.0.0.1:1234/v1"
     lm_studio_model_id: str = ""
     lm_studio_api_key: str = ""
@@ -27,6 +34,13 @@ class Settings(BaseSettings):
     max_audio_minutes: int = 15
     max_upload_mb: int = 200
     uncertain_confidence_threshold: float = 0.60
+
+    @field_validator("faster_whisper_model_path", mode="before")
+    @classmethod
+    def empty_faster_whisper_path_is_none(cls, value: object) -> object:
+        if value == "":
+            return None
+        return value
 
     @field_validator("lm_studio_base_url")
     @classmethod

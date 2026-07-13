@@ -11,6 +11,7 @@ from fastapi.responses import PlainTextResponse
 from ..models import HealthComponent, HealthResponse, LectureDetail, LectureSummary
 from ..services.exporter import render_markdown
 from ..services.media import SUPPORTED_EXTENSIONS
+from ..services.whisper import faster_whisper_readiness, whisper_cpp_readiness
 
 
 router = APIRouter(prefix="/api")
@@ -20,6 +21,9 @@ router = APIRouter(prefix="/api")
 async def health(request: Request) -> HealthResponse:
     settings = request.app.state.settings
     processor = request.app.state.processor
+    whisper_cpp = whisper_cpp_readiness(settings)
+    faster_whisper = faster_whisper_readiness(settings)
+    selected_backend = processor.transcription.selected_backend()
     components = {
         "database": HealthComponent(
             ready=settings.database_path.is_file(),
@@ -39,11 +43,31 @@ async def health(request: Request) -> HealthResponse:
         ),
         "whisper_cli": HealthComponent(
             ready=settings.executable_available(settings.whisper_cli_path),
-            detail=str(settings.whisper_cli_path),
+            detail=(
+                str(settings.whisper_cli_path)
+                if settings.executable_available(settings.whisper_cli_path)
+                else f"Missing whisper.cpp CLI at {settings.whisper_cli_path}. Build whisper.cpp, or set WHISPER_CLI_PATH in .env."
+            ),
         ),
         "whisper_model": HealthComponent(
             ready=settings.whisper_model_path.is_file(),
-            detail=str(settings.whisper_model_path),
+            detail=(
+                str(settings.whisper_model_path)
+                if settings.whisper_model_path.is_file()
+                else f"Missing whisper.cpp model at {settings.whisper_model_path}. Place ggml-base.en.bin there, or set WHISPER_MODEL_PATH in .env."
+            ),
+        ),
+        "whisper_cpp": HealthComponent(
+            ready=whisper_cpp.ready,
+            detail=whisper_cpp.detail,
+        ),
+        "faster_whisper": HealthComponent(
+            ready=faster_whisper.ready,
+            detail=faster_whisper.detail,
+        ),
+        "transcription_backend": HealthComponent(
+            ready=True,
+            detail=f"configured={settings.transcription_backend}; selected={selected_backend}",
         ),
     }
     try:
@@ -62,10 +86,20 @@ async def health(request: Request) -> HealthResponse:
             ready=False,
             detail=f"Local server unavailable: {error}",
         )
-    return HealthResponse(
-        ready=all(component.ready for component in components.values()),
-        components=components,
-    )
+    required_ready = [
+        components["database"].ready,
+        components["storage"].ready,
+        components["ffmpeg"].ready,
+        components["ffprobe"].ready,
+        components["lm_studio"].ready,
+    ]
+    if settings.transcription_backend == "faster_whisper":
+        required_ready.append(faster_whisper.ready)
+    elif settings.transcription_backend == "whisper_cpp":
+        required_ready.append(whisper_cpp.ready)
+    else:
+        required_ready.append(faster_whisper.ready or whisper_cpp.ready)
+    return HealthResponse(ready=all(required_ready), components=components)
 
 
 @router.post(
