@@ -1,0 +1,45 @@
+# macOS and editors
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# JavaScript
+node_modules/
+frontend/dist/
+*.tsbuildinfo
+npm-debug.log*
+
+# Local application data and private recordings
+data/
+uploads/
+exports/
+logs/
+samples/private/
+
+# Native runtimes and model weights
+vendor/
+models/
+ggml-*.bin
+*.gguf
+
+# Generated media and temporary files
+*.tmp
+*.log
+backend/app.db
