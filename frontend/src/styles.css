@@ -70,10 +70,12 @@ h1 { font-size: clamp(40px, 6vw, 68px); line-height: .98; letter-spacing: -.035e
 .title-field input, .title-editor input { width: 100%; border: 1px solid var(--line); border-radius: 9px; padding: 11px 13px; color: var(--ink); background: var(--paper); }
 .welcome-actions { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; color: var(--muted); font-size: 11px; }
 .demo-button { color: var(--green); border-color: #b8cbbf; }
-.recorder { margin-top: 18px; padding: 18px 20px; display: flex; align-items: center; justify-content: space-between; gap: 20px; border: 1px solid var(--line); border-radius: 14px; background: rgba(255,253,248,.65); }
+.recorder { margin-top: 18px; padding: 18px 20px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px; border: 1px solid var(--line); border-radius: 14px; background: rgba(255,253,248,.65); }
 .recorder > div:first-child { display: grid; gap: 4px; }
 .recorder > div:first-child span { color: var(--muted); font-size: 11px; }
-.recording-controls, .recording-preview { display: flex !important; align-items: center; gap: 9px !important; }
+.record-source-actions, .recording-controls, .recording-preview { display: flex !important; align-items: center; gap: 9px !important; }
+.record-source-actions { justify-content: flex-end; flex-wrap: wrap; }
+.recording-controls > span:nth-child(2) { color: var(--muted); font-size: 11px; white-space: nowrap; }
 .recording-preview audio { width: 220px; height: 36px; }
 .recording-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--red); animation: pulse 1.2s ease-in-out infinite; }
 .inline-error { width: 100%; color: var(--red); font-size: 12px; }
@@ -177,7 +179,7 @@ h1 { font-size: clamp(40px, 6vw, 68px); line-height: .98; letter-spacing: -.035e
   .setup-dialog { width: min(100% - 30px, 720px); }
   .setup-card li { grid-template-columns: 1fr; }
   .setup-card li .remediation { grid-column: 1; }
-  .recorder, .recording-preview { align-items: stretch; flex-direction: column; }
+  .recorder, .record-source-actions, .recording-preview { align-items: stretch; flex-direction: column; }
   .recording-preview audio { width: 100%; }
   .title-editor { grid-template-columns: 1fr auto; }
   .title-editor input { grid-column: 1 / -1; }
