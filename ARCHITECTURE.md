@@ -223,7 +223,7 @@ PocketTA does not call a hosted AI API, analytics endpoint, CDN, telemetry servi
 |---|---|---:|---|---|
 | Whisper `base.en` via whisper.cpp | English speech recognition | Base-size Whisper model; GGML file installed separately | CPU default; optional whisper.cpp GPU flag; 16 kHz mono input | External process loads model per transcription and exits. |
 | Faster Whisper `turbo` or local CTranslate2 directory | Optional CUDA speech recognition | Configurable model name/path | `compute_type` configurable; `.env.example` uses `int8`; batched inference with `batch_size=8`; VAD configurable | Loaded for transcription, then pipeline reference is cleared and CUDA cache is released when possible. |
-| Qwen 3.5 4B through LM Studio | Study-pack generation | 4B parameter local LLM | LM Studio runtime; recommended 16K context; schema-constrained JSON responses; prompt chunking for long transcripts | Loaded manually in LM Studio; PocketTA does not download or load it automatically. |
+| Qwen 3.5 4B through LM Studio at 4 bit quantization with KV cache quantised at 8-bit| Study-pack generation | 4B parameter local LLM | LM Studio runtime; recommended 16K context; schema-constrained JSON responses; prompt chunking for long transcripts | Loaded manually in LM Studio; PocketTA does not download or load it automatically. |
 
 ### Important Configuration
 
