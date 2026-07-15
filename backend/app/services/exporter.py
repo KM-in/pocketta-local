@@ -9,11 +9,11 @@ def render_markdown(lecture: LectureDetail) -> str:
     pack = lecture.study_pack
     uncertain = [segment for segment in lecture.transcript.segments if segment.uncertain]
     lines = [
-        f"# {pack.title}",
+        f"# {_escape_inline(lecture.title)}",
         "",
         "## Recording metadata",
         "",
-        f"- **Source file:** {lecture.original_filename}",
+        f"- **Source file:** {_escape_inline(lecture.original_filename)}",
         f"- **Duration:** {_duration(lecture.transcript.duration_ms)}",
         f"- **Created:** {lecture.created_at.isoformat()}",
         "- **Processing:** Generated locally with PocketTA; no cloud AI is required.",
@@ -105,3 +105,10 @@ def _duration(milliseconds: int) -> str:
     if hours:
         return f"{hours:d}:{minutes:02d}:{seconds:02d}"
     return f"{minutes:02d}:{seconds:02d}"
+
+
+def _escape_inline(value: str) -> str:
+    escaped = value.replace("\\", "\\\\")
+    for character in ("`", "*", "_", "[", "]", "<", ">", "#", "|"):
+        escaped = escaped.replace(character, f"\\{character}")
+    return escaped.replace("\r", " ").replace("\n", " ")

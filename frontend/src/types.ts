@@ -3,9 +3,17 @@ export type LectureStatus =
   | "normalizing"
   | "transcribing"
   | "generating"
+  | "transcribed"
   | "completed"
   | "failed"
+  | "cancelled"
   | "deleting";
+
+export interface ProcessingMetrics {
+  stage_seconds: Record<string, number>;
+  total_seconds: number;
+  peak_system_memory_mb: number;
+}
 
 export interface TranscriptSegment {
   id: string;
@@ -44,8 +52,12 @@ export interface StudyPack {
 
 export interface LectureSummary {
   id: string;
+  title: string;
   original_filename: string;
   status: LectureStatus;
+  progress: number;
+  message: string;
+  metrics: ProcessingMetrics;
   error: string | null;
   created_at: string;
   updated_at: string;
@@ -62,4 +74,9 @@ export interface HealthResponse {
     string,
     { ready: boolean; detail: string; remediation: string | null }
   >;
+}
+
+export interface SegmentCorrection {
+  segment_id: string;
+  text: string;
 }

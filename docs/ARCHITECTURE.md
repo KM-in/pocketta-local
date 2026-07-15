@@ -11,6 +11,7 @@ FastAPI on 127.0.0.1:8000
         +-- FFprobe/FFmpeg -> 16 kHz mono PCM WAV
         +-- whisper.cpp -> timestamped transcript JSON
         +-- LM Studio on 127.0.0.1:1234 -> validated study pack JSON
+        +-- long transcript map/reduce -> evidence-linked chunk summaries
         +-- Markdown export and permanent deletion
 ```
 
@@ -28,6 +29,8 @@ Uploads live below generated UUID directories; user filenames are display metada
 
 ## Persistence and limitations
 
-SQLite stores statuses and JSON results. Completed/failed lectures survive restarts; interrupted jobs return to the queue. The frontend polls every 1.5 seconds while work is active.
+SQLite stores statuses, progress, metrics, and JSON results. Additive startup migrations preserve earlier hackathon databases. Completed/failed lectures survive restarts; interrupted jobs return to the queue and reuse a saved transcript when available. The frontend polls every 1.5 seconds while work is active.
 
-The queue is designed for one local user. Generation uses one prompt per recording. Progress is stage-level, and cancellation is exposed through permanent deletion rather than a separate retry/cancel API.
+The queue is designed for one local user. Short transcripts use one schema-constrained request; longer inputs are divided on segment boundaries, summarized with evidence IDs, and reduced into the final study pack. Progress is stage-level. Cancellation retains completed intermediate results, transcript edits invalidate stale generated material, and generation can be retried independently.
+
+Normalized audio and Whisper scratch JSON are removed after successful transcription. The original recording remains until explicit deletion, and startup cleanup removes abandoned temporary files older than 24 hours.

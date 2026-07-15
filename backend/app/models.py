@@ -11,8 +11,10 @@ class LectureStatus(StrEnum):
     NORMALIZING = "normalizing"
     TRANSCRIBING = "transcribing"
     GENERATING = "generating"
+    TRANSCRIBED = "transcribed"
     COMPLETED = "completed"
     FAILED = "failed"
+    CANCELLED = "cancelled"
     DELETING = "deleting"
 
 
@@ -94,10 +96,48 @@ class StudyPack(BaseModel):
         return self
 
 
+class ProcessingMetrics(BaseModel):
+    stage_seconds: dict[str, float] = Field(default_factory=dict)
+    total_seconds: float = Field(default=0, ge=0)
+    peak_system_memory_mb: float = Field(default=0, ge=0)
+
+
+class SegmentCorrection(BaseModel):
+    segment_id: str = Field(min_length=1)
+    text: str = Field(min_length=1, max_length=10_000)
+
+    @field_validator("segment_id", "text")
+    @classmethod
+    def strip_correction_text(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("must not be blank")
+        return value
+
+
+class LectureUpdate(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=200)
+    corrections: list[SegmentCorrection] = Field(default_factory=list, max_length=500)
+
+    @field_validator("title")
+    @classmethod
+    def strip_title(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        value = value.strip()
+        if not value:
+            raise ValueError("title must not be blank")
+        return value
+
+
 class LectureSummary(BaseModel):
     id: str
+    title: str
     original_filename: str
     status: LectureStatus
+    progress: int = Field(default=0, ge=0, le=100)
+    message: str = ""
+    metrics: ProcessingMetrics = Field(default_factory=ProcessingMetrics)
     created_at: datetime
     updated_at: datetime
     error: str | None = None

@@ -15,3 +15,5 @@ cd frontend && npm test && npm run build
 ```
 
 Pull requests should describe user-visible behavior, privacy/network impact, test evidence, and new dependency/model licences. Never submit classroom recordings without explicit consent and redistribution rights. New HTTP destinations, telemetry, downloads, or non-loopback bind addresses require design review.
+
+All contributors must follow [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). Use the repository issue templates for reproducible bugs and scoped feature proposals.
