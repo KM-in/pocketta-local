@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
+type CaptureSource = "microphone" | "browser-tab";
+
 const supportedMime = () =>
   ["audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus", "audio/mp4"].find(
     (value) => window.MediaRecorder?.isTypeSupported(value),
@@ -13,6 +15,7 @@ export function Recorder({ disabled, onUse }: { disabled: boolean; onUse: (file:
   const stream = useRef<MediaStream | null>(null);
   const chunks = useRef<Blob[]>([]);
   const [recording, setRecording] = useState(false);
+  const [activeSource, setActiveSource] = useState<CaptureSource | null>(null);
   const [seconds, setSeconds] = useState(0);
   const [preview, setPreview] = useState<{ file: File; url: string } | null>(null);
   const [error, setError] = useState("");
@@ -25,21 +28,44 @@ export function Recorder({ disabled, onUse }: { disabled: boolean; onUse: (file:
 
   useEffect(() => () => {
     stream.current?.getTracks().forEach((track) => track.stop());
+  }, []);
+
+  useEffect(() => () => {
     if (preview) URL.revokeObjectURL(preview.url);
   }, [preview]);
 
-  const start = async () => {
+  const start = async (source: CaptureSource) => {
     setError("");
-    if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+    if (!window.MediaRecorder) {
       setError("This browser does not support local audio recording. Upload a file instead.");
       return;
     }
+    if (source === "microphone" && !navigator.mediaDevices?.getUserMedia) {
+      setError("This browser cannot record microphone audio. Upload a file instead.");
+      return;
+    }
+    if (source === "browser-tab" && !navigator.mediaDevices?.getDisplayMedia) {
+      setError("This browser cannot capture tab audio. Try a Chromium browser or upload a file instead.");
+      return;
+    }
     try {
-      const nextStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.current = nextStream;
+      const captureStream = source === "browser-tab"
+        ? await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true })
+        : await navigator.mediaDevices.getUserMedia({ audio: true });
+      const audioTracks = captureStream.getAudioTracks();
+      if (!audioTracks.length) {
+        captureStream.getTracks().forEach((track) => track.stop());
+        setError(source === "browser-tab"
+          ? "No tab audio was shared. Select the browser tab and enable “Share tab audio”, then try again."
+          : "No microphone audio track was available. Check the selected input or upload a recording instead.");
+        return;
+      }
+
+      stream.current = captureStream;
+      const recordingStream = source === "browser-tab" ? new MediaStream(audioTracks) : captureStream;
       chunks.current = [];
       const mimeType = supportedMime();
-      const nextRecorder = new MediaRecorder(nextStream, mimeType ? { mimeType } : undefined);
+      const nextRecorder = new MediaRecorder(recordingStream, mimeType ? { mimeType } : undefined);
       recorder.current = nextRecorder;
       nextRecorder.ondataavailable = (event) => {
         if (event.data.size) chunks.current.push(event.data);
@@ -53,16 +79,32 @@ export function Recorder({ disabled, onUse }: { disabled: boolean; onUse: (file:
           if (current) URL.revokeObjectURL(current.url);
           return { file, url: URL.createObjectURL(blob) };
         });
-        nextStream.getTracks().forEach((track) => track.stop());
+        captureStream.getTracks().forEach((track) => track.stop());
         stream.current = null;
+        setActiveSource(null);
       };
+      if (source === "browser-tab") {
+        captureStream.getTracks().forEach((track) => track.addEventListener("ended", () => {
+          if (nextRecorder.state !== "inactive") {
+            nextRecorder.stop();
+            setRecording(false);
+          }
+        }, { once: true }));
+      }
       nextRecorder.start(250);
       setSeconds(0);
+      setActiveSource(source);
       setRecording(true);
     } catch (cause) {
-      setError(cause instanceof DOMException && cause.name === "NotAllowedError"
-        ? "Microphone permission was denied. Allow it in browser settings or upload a recording."
-        : "The microphone could not be started. Upload a recording instead.");
+      if (source === "browser-tab") {
+        setError(cause instanceof DOMException && cause.name === "NotAllowedError"
+          ? "Tab sharing was cancelled or denied. Try again and select a tab with “Share tab audio” enabled."
+          : "Browser tab audio could not be started. Try a Chromium browser or upload a recording instead.");
+      } else {
+        setError(cause instanceof DOMException && cause.name === "NotAllowedError"
+          ? "Microphone permission was denied. Allow it in browser settings or upload a recording."
+          : "The microphone could not be started. Upload a recording instead.");
+      }
     }
   };
 
@@ -81,12 +123,14 @@ export function Recorder({ disabled, onUse }: { disabled: boolean; onUse: (file:
   return (
     <section className="recorder" aria-label="Record a lecture">
       <div>
-        <strong>Record from this browser</strong>
-        <span>Microphone audio stays local and follows the same processing flow.</span>
+        <strong>Record microphone or browser tab</strong>
+        <span>For YouTube, choose browser tab, select that tab, and enable “Share tab audio”.</span>
       </div>
       {recording ? (
         <div className="recording-controls" aria-live="polite">
-          <span className="recording-dot" /> <time>{clock(seconds)}</time>
+          <span className="recording-dot" />
+          <span>{activeSource === "browser-tab" ? "Recording browser tab" : "Recording microphone"}</span>
+          <time>{clock(seconds)}</time>
           <button type="button" className="button danger" onClick={stop}>Stop recording</button>
         </div>
       ) : preview ? (
@@ -96,7 +140,10 @@ export function Recorder({ disabled, onUse }: { disabled: boolean; onUse: (file:
           <button type="button" className="button secondary" disabled={disabled} onClick={discard}>Discard</button>
         </div>
       ) : (
-        <button type="button" className="button record-button" disabled={disabled} onClick={() => void start()}>Start recording</button>
+        <div className="record-source-actions">
+          <button type="button" className="button secondary" disabled={disabled} onClick={() => void start("microphone")}>Record microphone</button>
+          <button type="button" className="button record-button" disabled={disabled} onClick={() => void start("browser-tab")}>Record browser tab audio</button>
+        </div>
       )}
       {error && <p className="inline-error" role="alert">{error}</p>}
     </section>
