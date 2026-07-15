@@ -161,7 +161,7 @@ function Welcome({ health, busy, upload, tryDemo }: { health: HealthResponse | n
       <label className="title-field"><span>Optional lecture title</span><input value={title} maxLength={200} onChange={(event) => setTitle(event.target.value)} placeholder="e.g. Introduction to computation" /></label>
       <label className={`drop-zone ${busy ? "disabled" : ""}`} onDragOver={(event) => event.preventDefault()} onDrop={drop}>
         <input type="file" accept=".wav,.mp3,.m4a,.mp4,.webm,.ogg" disabled={busy} onChange={(event) => void upload(event.target.files?.[0], title)} />
-        <span className="upload-icon">↑</span><strong>{busy ? "Starting…" : "Drop a lecture recording here"}</strong><span>or click to choose · up to 15 minutes / 200 MB</span>
+        <span className="upload-icon">↑</span><strong>{busy ? "Starting…" : "Drop a lecture recording here"}</strong><span>or click to choose · up to 200 MB</span>
       </label>
       <div className="welcome-actions"><button type="button" className="button demo-button" disabled={busy} onClick={() => void tryDemo()}>Try the offline demo</button><span>No recording needed · attributed sample</span></div>
       <Recorder disabled={busy} onUse={(file) => upload(file, title)} />

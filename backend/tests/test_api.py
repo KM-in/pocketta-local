@@ -65,6 +65,7 @@ def test_health_reports_faster_whisper_without_requiring_it_in_auto(
     )
     app = create_app(
         Settings(
+            _env_file=None,
             pocketta_data_dir=tmp_path,
             whisper_cli_path=whisper_cli,
             whisper_model_path=whisper_model,

@@ -34,7 +34,6 @@ class Settings(BaseSettings):
     lm_studio_timeout_seconds: float = 480.0
     lm_studio_chunk_chars: int = 14_000
     lm_studio_chunk_overlap_segments: int = 1
-    max_audio_minutes: int = 15
     max_upload_mb: int = 200
     uncertain_confidence_threshold: float = 0.60
     temporary_file_max_age_hours: int = 24

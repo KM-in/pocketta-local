@@ -85,12 +85,17 @@ class LMStudioService:
                 overlap=self.settings.lm_studio_chunk_overlap_segments,
             ):
                 valid_ids = {segment.id for segment in chunk}
-                summary = await self._generate_model(
-                    ChunkSummary,
-                    _chunk_prompt(chunk),
-                    max_tokens=900,
-                    validator=lambda value, ids=valid_ids: _validate_chunk(value, ids),
-                )
+                try:
+                    summary = await self._generate_model(
+                        ChunkSummary,
+                        _chunk_prompt(chunk),
+                        max_tokens=900,
+                        validator=lambda value, ids=valid_ids: _validate_chunk(
+                            value, ids
+                        ),
+                    )
+                except LMStudioError:
+                    summary = _fallback_chunk_summary(chunk)
                 summaries.append(summary)
             prompt = _summary_pack_prompt(summaries)
         else:
@@ -228,6 +233,16 @@ def _validate_chunk(summary: ChunkSummary, valid_ids: set[str]) -> ChunkSummary:
     if invalid:
         raise ValueError(f"Unknown transcript segment IDs: {', '.join(invalid)}")
     return summary
+
+
+def _fallback_chunk_summary(chunk: list[TranscriptSegment]) -> ChunkSummary:
+    points = []
+    for segment in chunk[:8]:
+        text = " ".join(segment.text.split())
+        if len(text) > 240:
+            text = text[:237].rstrip() + "..."
+        points.append({"point": text, "segment_ids": [segment.id]})
+    return ChunkSummary(points=points)
 
 
 def _source_supports_full_pack(segments: list[TranscriptSegment]) -> bool:
