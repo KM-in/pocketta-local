@@ -5,7 +5,7 @@
 - Connect power, close memory-heavy applications, disable notifications, and start LM Studio, FastAPI, and Vite.
 - Confirm readiness is green and record the exact Whisper and LM Studio versions.
 - Open browser developer tools and filter for requests outside `localhost`/`127.0.0.1`.
-- Prepare a consented 60–90 second live clip and the completed 10-minute result as a labelled longer example.
+- Prepare a consented 60–90 second live clip or the attributed built-in demo, plus the completed 10-minute result as a labelled longer example.
 - Run the tests/build and one connected benchmark pass.
 
 ## Three-minute flow
@@ -14,9 +14,10 @@
 2. Show local components and disable Wi-Fi visibly.
 3. Upload the short clip and show real processing stages.
 4. Open the completed longer result; show uncertainty, quiz behavior, and an evidence click.
-5. Export Markdown and show metadata, warnings, evidence anchors, and transcript.
-6. Delete a disposable lecture and confirm it disappears.
-7. Show measured timings and the repository. Never present the prepared result as the live upload.
+5. Show measured stage timings, correct a disposable transcript segment, and explain generation-only retry.
+6. Export Markdown and show metadata, warnings, evidence anchors, and transcript.
+7. Delete a disposable lecture and confirm it disappears.
+8. Show the repository. Never present the prepared result as the live upload.
 
 ## Release gate
 

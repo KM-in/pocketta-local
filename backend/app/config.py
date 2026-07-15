@@ -31,9 +31,19 @@ class Settings(BaseSettings):
     lm_studio_model_id: str = ""
     lm_studio_api_key: str = ""
     lm_studio_timeout_seconds: float = 480.0
+    lm_studio_chunk_chars: int = 14_000
+    lm_studio_chunk_overlap_segments: int = 1
     max_audio_minutes: int = 15
     max_upload_mb: int = 200
     uncertain_confidence_threshold: float = 0.60
+    temporary_file_max_age_hours: int = 24
+
+    @field_validator("lm_studio_chunk_chars")
+    @classmethod
+    def chunk_size_must_be_practical(cls, value: int) -> int:
+        if value < 2_000:
+            raise ValueError("LM Studio chunk size must be at least 2000 characters")
+        return value
 
     @field_validator("faster_whisper_model_path", mode="before")
     @classmethod

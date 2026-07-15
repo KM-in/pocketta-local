@@ -22,7 +22,7 @@ Install the NVIDIA CUDA cuBLAS/cuDNN runtime libraries required by Faster Whispe
 
 Install LM Studio, download Qwen 3.5 4B while online, and load it manually with a context length of at least 16K. Start the local server in LM Studio's Developer tab on `127.0.0.1:1234`. PocketTA checks `/v1/models` but never starts the server, loads a model, or downloads one.
 
-PocketTA sends one generation request at a time, accepts LM Studio's structured content or reasoning-content response field, and rejects generated citations to uncertain transcript segments.
+PocketTA sends one generation request at a time, accepts LM Studio's structured content or reasoning-content response field, and rejects generated citations to uncertain transcript segments. Inputs above `LM_STUDIO_CHUNK_CHARS` are summarized in chronological evidence-linked chunks before final generation.
 The default request timeout is eight minutes because measured structured generation on the 8 GB reference machine can exceed six minutes for a 10-minute transcript.
 
 The prepared reference machine uses model identifier `qwen3.5-4b`, whisper.cpp commit `080bbbe85230f624f0b52127f1ae1218247989f9`, and `base.en` SHA-256 `b7518e435da610821f88090732a6c5c685e9194edf1214b9d36a0eb9dff2051b`.
@@ -31,7 +31,7 @@ Windows uses the `.exe` whisper CLI path in `.env`. All application subprocess c
 
 ## Data and privacy
 
-SQLite and lecture directories are stored below `POCKETTA_DATA_DIR`. Each UUID directory contains the original source, normalized audio, transcript, and study pack. `DELETE /api/lectures/{id}` cancels owned native work, deletes this directory, and removes its database row.
+SQLite and lecture directories are stored below `POCKETTA_DATA_DIR`. Each UUID directory contains the original source and completed transcript/study-pack JSON. Normalized audio is temporary. `DELETE /api/lectures/{id}` cancels owned native work, deletes this directory, and removes its database row.
 
 The application contains no CDN, telemetry, cloud client, account, model downloader, vector database, or chatbot.
 
@@ -41,15 +41,14 @@ The application contains no CDN, telemetry, cloud client, account, model downloa
 2. Start LM Studio, load Qwen, start FastAPI and Vite, and confirm `/api/health` reports every component ready.
 3. Disable Wi-Fi.
 4. Upload a consented English recording of less than 15 minutes and 200 MB.
-5. Confirm the job reaches `completed`, uncertain transcript text is marked, and every generated item links to a real transcript segment. If using CUDA, confirm `/api/health` reports `selected=faster_whisper`.
-6. Export Markdown and verify its evidence links target the transcript appendix.
-7. Restart PocketTA and confirm the lecture persists.
-8. Delete the lecture and verify both its UUID directory and SQLite row are gone.
+5. Confirm the job reaches `completed`, uncertain transcript text is marked, and every generated item links to a real transcript segment.
+6. If using CUDA, confirm `/api/health` reports `selected=faster_whisper`.
+7. Correct one transcript segment, confirm the stale study pack disappears, and regenerate without rerunning transcription.
+8. Export Markdown and verify its evidence links target the transcript appendix; test Print / Save as PDF.
+9. Restart PocketTA and confirm the lecture persists.
+10. Delete the lecture and verify both its UUID directory and SQLite row are gone.
 
-<<<<<<< HEAD
 Record OS, CPU, GPU, memory, selected transcription backend, whisper.cpp commit or Faster Whisper model, LM Studio version, recording duration, processing time, and peak memory for the hackathon demo.
-=======
-Record OS, CPU, memory, whisper.cpp commit, model filenames, LM Studio version, recording duration, processing time, and peak memory for the hackathon demo.
 
 ## Benchmark workflow
 
@@ -65,8 +64,9 @@ Run once while connected to establish setup, then twice after disabling Wi-Fi. T
 ## Troubleshooting
 
 - **FFmpeg/FFprobe missing:** run the command shown in readiness, then restart FastAPI.
-- **Whisper missing:** build the pinned whisper.cpp checkout and verify `WHISPER_CLI_PATH`.
+- **whisper.cpp missing:** build the pinned checkout and verify `WHISPER_CLI_PATH` and `WHISPER_MODEL_PATH`.
+- **Faster Whisper unavailable:** install the optional requirements and CUDA libraries, prepare the configured model while online, or set `TRANSCRIPTION_BACKEND=whisper_cpp`.
 - **LM Studio unavailable:** load Qwen 3.5 4B with a 16K context, start the Developer server, and copy its exact `/v1/models` ID into `.env`.
 - **Transcript exists but generation failed:** ensure the loaded model supports JSON-schema output and that reliable speech remains after uncertainty filtering.
+- **Generation failed after transcription:** use “Generate study pack” to retry from the saved transcript.
 - **Recording rejected after upload:** convert corrupt media to WAV/MP3 or use a clip within the 15-minute limit.
->>>>>>> 0cbddb344da9785bf2fae640d148fc291c510a7c

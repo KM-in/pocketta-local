@@ -1,0 +1,22 @@
+name: Feature request
+description: Propose a focused offline-first improvement
+title: "feature: "
+labels: [enhancement]
+body:
+  - type: textarea
+    attributes:
+      label: Student need
+      description: What concrete problem would this solve?
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Proposed behavior
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Offline, privacy, and resource impact
+      description: Note any networking, model, memory, storage, or licensing implications.
+    validations:
+      required: true

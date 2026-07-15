@@ -4,7 +4,14 @@ import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
 
-from .models import LectureDetail, LectureStatus, LectureSummary, StudyPack, Transcript
+from .models import (
+    LectureDetail,
+    LectureStatus,
+    LectureSummary,
+    ProcessingMetrics,
+    StudyPack,
+    Transcript,
+)
 
 
 class Database:
@@ -36,32 +43,119 @@ class Database:
                 )
                 """
             )
+            columns = {
+                row["name"]
+                for row in connection.execute("PRAGMA table_info(lectures)").fetchall()
+            }
+            migrations = {
+                "title": "ALTER TABLE lectures ADD COLUMN title TEXT",
+                "progress": (
+                    "ALTER TABLE lectures ADD COLUMN progress INTEGER NOT NULL DEFAULT 0"
+                ),
+                "message": (
+                    "ALTER TABLE lectures ADD COLUMN message TEXT NOT NULL DEFAULT ''"
+                ),
+                "metrics_json": "ALTER TABLE lectures ADD COLUMN metrics_json TEXT",
+            }
+            for column, statement in migrations.items():
+                if column not in columns:
+                    connection.execute(statement)
+            connection.execute(
+                "UPDATE lectures SET title = original_filename WHERE title IS NULL OR title = ''"
+            )
 
-    def create_lecture(self, lecture_id: str, filename: str, source_path: Path) -> None:
+    def create_lecture(
+        self, lecture_id: str, filename: str, source_path: Path, title: str | None = None
+    ) -> None:
         now = datetime.now(UTC).isoformat()
+        display_title = title.strip() if title and title.strip() else Path(filename).stem
         with self._connect() as connection:
             connection.execute(
                 """INSERT INTO lectures
-                (id, original_filename, source_path, status, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?)""",
-                (lecture_id, filename, str(source_path), LectureStatus.QUEUED, now, now),
+                (id, title, original_filename, source_path, status, progress, message,
+                 created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    lecture_id,
+                    display_title,
+                    filename,
+                    str(source_path),
+                    LectureStatus.QUEUED,
+                    0,
+                    "Waiting for the local worker",
+                    now,
+                    now,
+                ),
             )
 
     def update_status(
-        self, lecture_id: str, status: LectureStatus, error: str | None = None
+        self,
+        lecture_id: str,
+        status: LectureStatus,
+        error: str | None = None,
+        *,
+        progress: int | None = None,
+        message: str | None = None,
     ) -> bool:
+        assignments = ["status = ?", "error = ?", "updated_at = ?"]
+        values: list[object] = [status, error, datetime.now(UTC).isoformat()]
+        if progress is not None:
+            assignments.append("progress = ?")
+            values.append(max(0, min(100, progress)))
+        if message is not None:
+            assignments.append("message = ?")
+            values.append(message)
+        values.append(lecture_id)
         with self._connect() as connection:
             cursor = connection.execute(
-                "UPDATE lectures SET status = ?, error = ?, updated_at = ? WHERE id = ?",
-                (status, error, datetime.now(UTC).isoformat(), lecture_id),
+                f"UPDATE lectures SET {', '.join(assignments)} WHERE id = ?", values
             )
             return cursor.rowcount > 0
+
+    def save_metrics(self, lecture_id: str, metrics: ProcessingMetrics) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                "UPDATE lectures SET metrics_json = ?, updated_at = ? WHERE id = ?",
+                (metrics.model_dump_json(), datetime.now(UTC).isoformat(), lecture_id),
+            )
+
+    def update_title(self, lecture_id: str, title: str) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                "UPDATE lectures SET title = ?, updated_at = ? WHERE id = ?",
+                (title, datetime.now(UTC).isoformat(), lecture_id),
+            )
 
     def save_transcript(self, lecture_id: str, transcript: Transcript) -> None:
         with self._connect() as connection:
             connection.execute(
                 "UPDATE lectures SET transcript_json = ?, updated_at = ? WHERE id = ?",
                 (transcript.model_dump_json(), datetime.now(UTC).isoformat(), lecture_id),
+            )
+
+    def replace_transcript_and_invalidate_pack(
+        self, lecture_id: str, transcript: Transcript
+    ) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                """UPDATE lectures
+                SET transcript_json = ?, study_pack_json = NULL, status = ?, error = NULL,
+                    progress = 60, message = ?, updated_at = ?
+                WHERE id = ?""",
+                (
+                    transcript.model_dump_json(),
+                    LectureStatus.TRANSCRIBED,
+                    "Transcript updated; regenerate the study pack",
+                    datetime.now(UTC).isoformat(),
+                    lecture_id,
+                ),
+            )
+
+    def clear_study_pack(self, lecture_id: str) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                "UPDATE lectures SET study_pack_json = NULL, updated_at = ? WHERE id = ?",
+                (datetime.now(UTC).isoformat(), lecture_id),
             )
 
     def save_study_pack(self, lecture_id: str, study_pack: StudyPack) -> None:
@@ -124,9 +218,15 @@ class Database:
             ids = [row["id"] for row in rows]
             if ids:
                 connection.executemany(
-                    "UPDATE lectures SET status = ?, error = NULL, updated_at = ? WHERE id = ?",
+                    """UPDATE lectures SET status = ?, error = NULL, progress = 0,
+                    message = ?, updated_at = ? WHERE id = ?""",
                     [
-                        (LectureStatus.QUEUED, datetime.now(UTC).isoformat(), lecture_id)
+                        (
+                            LectureStatus.QUEUED,
+                            "Recovered after restart",
+                            datetime.now(UTC).isoformat(),
+                            lecture_id,
+                        )
                         for lecture_id in ids
                     ],
                 )
@@ -141,8 +241,14 @@ class Database:
     def _summary(row: sqlite3.Row) -> LectureSummary:
         return LectureSummary(
             id=row["id"],
+            title=row["title"] or Path(row["original_filename"]).stem,
             original_filename=row["original_filename"],
             status=row["status"],
+            progress=row["progress"] or 0,
+            message=row["message"] or "",
+            metrics=ProcessingMetrics.model_validate_json(row["metrics_json"])
+            if row["metrics_json"]
+            else ProcessingMetrics(),
             error=row["error"],
             created_at=datetime.fromisoformat(row["created_at"]),
             updated_at=datetime.fromisoformat(row["updated_at"]),

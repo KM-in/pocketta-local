@@ -1,0 +1,29 @@
+name: Bug report
+description: Report a reproducible PocketTA problem without sharing private lecture data
+title: "bug: "
+labels: [bug]
+body:
+  - type: textarea
+    attributes:
+      label: What happened?
+      description: Describe the expected and observed behavior.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Reproduction
+      description: Include minimal steps using synthetic or redistributable media only.
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Environment
+      description: OS, Python/Node versions, whisper.cpp revision, model, and local runtime version.
+    validations:
+      required: true
+  - type: checkboxes
+    attributes:
+      label: Privacy confirmation
+      options:
+        - label: I removed recordings, transcripts, secrets, local paths, and personal information.
+          required: true

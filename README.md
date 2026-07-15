@@ -9,8 +9,11 @@ PocketTA Local turns lecture recordings into private, offline transcripts and ev
 - Mark low-confidence transcript segments and exclude them from confident generated evidence.
 - Build notes, concepts, flashcards, and quizzes with Qwen 3.5 4B in LM Studio.
 - Trace generated items to transcript segments, persist results, export Markdown, and permanently delete data.
+- Record in the browser, cancel local work, correct transcript text, and retry generation without retranscribing.
+- Show coarse persisted progress, stage timings, observed system-memory use, browser connectivity, and local runtime readiness.
+- Start an attributed built-in demo and use the browser print dialog for PDF output.
 
-The hackathon build intentionally omits recording, transcript editing, PDF, chat, diarisation, accounts, and cloud sync.
+The hackathon build intentionally omits chat, diarisation, accounts, cloud sync, semantic search, and native packaging.
 
 ## Prerequisites
 
@@ -104,11 +107,15 @@ The runner records observed stages and total time, then verifies evidence, uncer
 
 The hardened 10-minute run on the 8 GB reference machine completed in 390.2 seconds: 1.0s normalization, 23.8s transcription, and approximately 365s structured generation. It produced 188 transcript segments, 14 notes, 6 concepts, 6 flashcards, and 5 quiz questions; every cited ID resolved and the one uncertain segment was not cited. This run used localhost services, but Wi-Fi-off status was not independently captured and is not claimed.
 
+The bundled 2.5-minute demo completed a post-hardening local run in 88.4 seconds: 0.5s normalization, 6.1s transcription, and 81.7s generation. It produced 43 segments, 3 concepts, 5 flashcards, and 5 quiz questions with 21 distinct valid evidence citations. This run also used localhost services; it was not an independently recorded Wi-Fi-off run.
+
 ## Privacy and limitations
 
 PocketTA binds to loopback addresses, restricts the LM Studio URL to loopback, ignores proxy environment variables for model calls, and contains no analytics, CDN assets, cloud AI, accounts, or model downloader. Data remains under `POCKETTA_DATA_DIR` until deletion.
 
 Initial installation requires internet. Local execution reduces disclosure risk but is not a formal security proof, and generated material can be incomplete or wrong. Inspect its cited evidence.
+
+The bundled 2.5-minute demo is an attributed excerpt of MIT OpenCourseWare material. Its CC BY-NC-SA licence and derivation are documented in [samples/README.md](samples/README.md); it is not relicensed under PocketTA's MIT code licence.
 
 ## Project documentation
 
