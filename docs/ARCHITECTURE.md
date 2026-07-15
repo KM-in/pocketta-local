@@ -9,7 +9,8 @@ flowchart TB
     subgraph UserDevice["User device / local machine"]
         subgraph Browser["Browser UI - React + Vite on 127.0.0.1:5173"]
             Upload["File upload\nWAV / MP3 / M4A / MP4 / AAC / FLAC / OGG / WebM"]
-            Mic["Microphone recorder\nMediaRecorder API"]
+            Mic["Microphone recorder\nMediaRecorder + getUserMedia"]
+            TabAudio["Browser tab audio recorder\nChromium getDisplayMedia\nrequires Share tab audio"]
             Poll["Lecture list + detail polling\n1.5s while work is active"]
             Editor["Transcript correction UI\nInvalidates stale study pack"]
             Export["Markdown export\nBrowser print can produce PDF"]
@@ -62,6 +63,7 @@ flowchart TB
 
     Upload --> API
     Mic --> Upload
+    TabAudio --> Upload
     Poll --> API
     Editor --> API
     Export --> API
@@ -105,11 +107,11 @@ flowchart TB
 
 ## Data Flow
 
-1. The user uploads a lecture file or records audio in the browser with the MediaRecorder API.
+1. The user uploads a lecture file, records microphone audio in the browser, or records a Chromium browser tab with tab audio sharing enabled.
 2. FastAPI streams the upload to `POCKETTA_DATA_DIR/lectures/{uuid}/source.*` while enforcing the configured upload byte limit.
 3. The lecture row is created in SQLite with queued status, display filename, optional title, progress, and empty result fields.
 4. A single local work queue picks up the lecture. Only one heavy lecture job is processed at a time to avoid competing STT and LLM memory pressure.
-5. FFprobe attempts to read duration from both container-level and stream-level duration fields. Browser mic recordings can report `N/A`, so PocketTA can normalize first and then probe the generated WAV duration.
+5. FFprobe attempts to read duration from both container-level and stream-level duration fields. Browser mic and tab recordings can report `N/A`, so PocketTA can normalize first and then probe the generated WAV duration.
 6. FFmpeg converts media to temporary 16 kHz mono PCM WAV, the input expected by the speech backend.
 7. `TranscriptionService` selects either whisper.cpp or Faster Whisper:
    - `whisper_cpp`: runs the configured `whisper-cli` executable and parses its JSON output.
@@ -171,6 +173,8 @@ sequenceDiagram
 | Component | Runs during normal use | Network used during normal use? | User data leaves device? | Notes |
 |---|---:|---:|---:|---|
 | React/Vite UI | Local browser | No external network required | No | Connects to FastAPI on loopback. |
+| Browser microphone capture | Local browser | No external network required | No | Uses `getUserMedia`; requires user microphone permission. |
+| Browser tab audio capture | Chromium-based local browser | No external network required | No | Uses `getDisplayMedia`; the user must select a browser tab and enable "Share tab audio". Firefox and Safari are not currently supported for tab audio capture. |
 | FastAPI backend | Local Python process | No external network required | No | Binds to `127.0.0.1`. |
 | SQLite | Local file | No | No | Stores metadata, transcript JSON, study-pack JSON, and metrics. |
 | FFmpeg / FFprobe | Local native tools | No | No | Used for duration probing and audio normalization. |
@@ -187,6 +191,7 @@ PocketTA does not call a hosted AI API, analytics endpoint, CDN, telemetry servi
 - **Loopback-only architecture:** The UI, backend, and LM Studio all communicate through loopback addresses. `LM_STUDIO_BASE_URL` is validated so it cannot point at a remote host.
 - **No cloud AI dependency:** Transcription and generation are local. Internet is a setup dependency, not a runtime dependency.
 - **Single heavy-work queue:** STT and LLM workloads can both consume large RAM/VRAM. A single queue avoids simultaneous model contention on student laptops.
+- **Browser capture is explicit:** Microphone and tab capture are user-initiated browser permissions. Tab audio is limited to Chromium-based browsers because PocketTA depends on Chromium's tab-audio display-capture support.
 - **Evidence-first generation:** Every generated note, concept, flashcard, and quiz question must cite exact transcript segment IDs.
 - **Uncertainty filtering:** Low-confidence transcript segments are visible for transparency but excluded from confident study-material generation.
 - **Schema-constrained LLM calls:** LM Studio requests include JSON schema response formats, then Pydantic performs local validation.
@@ -309,7 +314,8 @@ No formal word-error-rate benchmark, human preference study, or head-to-head qua
 - Local LLMs can omit content, produce shallow summaries, or fail JSON validation. PocketTA retries and validates, but generated study material still needs review.
 - Very long recordings can exceed local model context, timeout, RAM, or VRAM limits despite chunking.
 - If all transcript segments are uncertain, generation stops rather than inventing unsupported material.
-- Browser mic containers can omit duration metadata; PocketTA now falls back to probing the normalized WAV, but corrupt media can still fail.
+- Browser mic and tab-recording containers can omit duration metadata; PocketTA now falls back to probing the normalized WAV, but corrupt media can still fail.
+- Browser tab audio capture currently requires Chrome, Edge, or another Chromium-based browser. The user must choose a browser tab, not a window or full screen, and enable "Share tab audio".
 - LM Studio must be manually started with the correct local model loaded.
 - The app is designed for one local user, not multi-user concurrent workloads.
 
@@ -352,7 +358,8 @@ PocketTA is designed so lecture audio, transcripts, corrections, generated study
 
 ### Permissions
 
-- Browser microphone permission is required only for in-browser recording.
+- Browser microphone permission is required only for microphone recording.
+- Browser tab recording requires screen/tab capture permission in a Chromium-based browser and explicit "Share tab audio" selection. PocketTA records only the returned audio track, not the video track.
 - File upload uses standard browser file selection or drag/drop.
 - The backend does not require accounts, cloud credentials, or persistent network permissions.
 - Local filesystem access is limited to configured project/data paths and native tool execution.
@@ -361,6 +368,7 @@ PocketTA is designed so lecture audio, transcripts, corrections, generated study
 
 - Generated notes and quizzes can be incomplete or wrong. Users should inspect the cited transcript evidence.
 - Transcripts may contain errors, especially for noisy or specialized audio.
+- Browser tab capture can record copyrighted or private playback if the user chooses such a tab. Users are responsible for recording only content they have permission to process.
 - The app reduces disclosure risk but is not a formal security proof.
 - Anyone with access to the local machine and `POCKETTA_DATA_DIR` may access stored recordings and generated artifacts unless the OS protects that directory.
 - The bundled demo media is CC BY-NC-SA and is not covered by the project's MIT software license.

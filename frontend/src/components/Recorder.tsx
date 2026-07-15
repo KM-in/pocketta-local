@@ -2,6 +2,18 @@ import { useEffect, useRef, useState } from "react";
 
 type CaptureSource = "microphone" | "browser-tab";
 
+type DisplayMediaOptionsWithTabAudio = DisplayMediaStreamOptions & {
+  preferCurrentTab?: boolean;
+  selfBrowserSurface?: "include" | "exclude";
+  surfaceSwitching?: "include" | "exclude";
+  systemAudio?: "include" | "exclude";
+  video?: MediaTrackConstraints & { displaySurface?: "browser" | "window" | "monitor" };
+  audio?: boolean | (MediaTrackConstraints & {
+    suppressLocalAudioPlayback?: boolean;
+    systemAudio?: "include" | "exclude";
+  });
+};
+
 const supportedMime = () =>
   ["audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus", "audio/mp4"].find(
     (value) => window.MediaRecorder?.isTypeSupported(value),
@@ -9,6 +21,28 @@ const supportedMime = () =>
 
 const clock = (seconds: number) =>
   `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
+
+const tabAudioDisplayOptions = (): DisplayMediaOptionsWithTabAudio => ({
+  preferCurrentTab: false,
+  selfBrowserSurface: "include",
+  surfaceSwitching: "include",
+  systemAudio: "include",
+  video: { displaySurface: "browser" },
+  audio: {
+    echoCancellation: false,
+    noiseSuppression: false,
+    autoGainControl: false,
+    suppressLocalAudioPlayback: false,
+    systemAudio: "include",
+  },
+});
+
+const tabAudioMissingMessage = (surface?: string) => {
+  if (surface && surface !== "browser") {
+    return 'No tab audio was shared. Choose a browser tab, not a window or screen, and enable "Share tab audio".';
+  }
+  return 'No tab audio was shared. Choose the YouTube browser tab and enable "Share tab audio", then try again.';
+};
 
 export function Recorder({ disabled, onUse }: { disabled: boolean; onUse: (file: File) => Promise<void> }) {
   const recorder = useRef<MediaRecorder | null>(null);
@@ -50,13 +84,14 @@ export function Recorder({ disabled, onUse }: { disabled: boolean; onUse: (file:
     }
     try {
       const captureStream = source === "browser-tab"
-        ? await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true })
+        ? await navigator.mediaDevices.getDisplayMedia(tabAudioDisplayOptions())
         : await navigator.mediaDevices.getUserMedia({ audio: true });
       const audioTracks = captureStream.getAudioTracks();
       if (!audioTracks.length) {
+        const selectedSurface = captureStream.getVideoTracks()[0]?.getSettings().displaySurface;
         captureStream.getTracks().forEach((track) => track.stop());
         setError(source === "browser-tab"
-          ? "No tab audio was shared. Select the browser tab and enable “Share tab audio”, then try again."
+          ? tabAudioMissingMessage(selectedSurface)
           : "No microphone audio track was available. Check the selected input or upload a recording instead.");
         return;
       }

@@ -9,7 +9,7 @@ PocketTA Local turns lecture recordings into private, offline transcripts and ev
 - Mark low-confidence transcript segments and exclude them from confident generated evidence.
 - Build notes, concepts, flashcards, and quizzes with Qwen 3.5 4B in LM Studio.
 - Trace generated items to transcript segments, persist results, export Markdown, and permanently delete data.
-- Record in the browser, cancel local work, correct transcript text, and retry generation without retranscribing.
+- Record from a microphone or Chromium-based browser tab, cancel local work, correct transcript text, and retry generation without retranscribing.
 - Show coarse persisted progress, stage timings, observed system-memory use, browser connectivity, and local runtime readiness.
 - Start an attributed built-in demo and use the browser print dialog for PDF output.
 
@@ -81,6 +81,8 @@ npm run dev
 
 Open `http://127.0.0.1:5173`. The readiness panel identifies any missing local prerequisite.
 
+For YouTube or other tab audio, use a Chromium-based browser such as Chrome or Edge. Choose **Record browser tab audio**, select the browser tab in the share picker, and enable **Share tab audio**. Firefox and Safari do not currently expose compatible tab-audio capture for this workflow, so use file upload or microphone recording there.
+
 PocketTA never starts, loads, or downloads models. Failed readiness rows include the local command or LM Studio action needed to fix them.
 
 ## Verify
@@ -113,7 +115,7 @@ The bundled 2.5-minute demo completed a post-hardening local run in 88.4 seconds
 
 PocketTA binds to loopback addresses, restricts the LM Studio URL to loopback, ignores proxy environment variables for model calls, and contains no analytics, CDN assets, cloud AI, accounts, or model downloader. Data remains under `POCKETTA_DATA_DIR` until deletion.
 
-Initial installation requires internet. Local execution reduces disclosure risk but is not a formal security proof, and generated material can be incomplete or wrong. Inspect its cited evidence.
+Initial installation requires internet. Local execution reduces disclosure risk but is not a formal security proof, and generated material can be incomplete or wrong. Browser tab recording currently depends on Chromium tab-capture behavior and requires the user to explicitly share tab audio. Inspect generated material's cited evidence.
 
 The bundled 2.5-minute demo is an attributed excerpt of MIT OpenCourseWare material. Its CC BY-NC-SA licence and derivation are documented in [samples/README.md](samples/README.md); it is not relicensed under PocketTA's MIT code licence.
 

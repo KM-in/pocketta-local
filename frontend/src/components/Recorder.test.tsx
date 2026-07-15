@@ -13,14 +13,16 @@ const restore = (target: object, key: PropertyKey, descriptor?: PropertyDescript
   else Reflect.deleteProperty(target, key);
 };
 
-const track = (kind: "audio" | "video") => ({
+const track = (kind: "audio" | "video", displaySurface = "browser") => ({
   kind,
   stop: vi.fn(),
   addEventListener: vi.fn(),
+  getSettings: vi.fn(() => ({ displaySurface })),
 }) as unknown as MediaStreamTrack;
 
 const captureStream = (audioTracks: MediaStreamTrack[], otherTracks: MediaStreamTrack[] = []) => ({
   getAudioTracks: vi.fn(() => audioTracks),
+  getVideoTracks: vi.fn(() => otherTracks.filter((item) => item.kind === "video")),
   getTracks: vi.fn(() => [...audioTracks, ...otherTracks]),
 }) as unknown as MediaStream;
 
@@ -133,7 +135,11 @@ describe("Recorder", () => {
     render(<Recorder disabled={false} onUse={onUse} />);
     fireEvent.click(screen.getByRole("button", { name: "Record browser tab audio" }));
 
-    await waitFor(() => expect(getDisplayMedia).toHaveBeenCalledWith({ video: true, audio: true }));
+    await waitFor(() => expect(getDisplayMedia).toHaveBeenCalledWith(expect.objectContaining({
+      audio: expect.objectContaining({ systemAudio: "include" }),
+      video: expect.objectContaining({ displaySurface: "browser" }),
+      systemAudio: "include",
+    })));
     expect(await screen.findByText("Recording browser tab")).toBeInTheDocument();
     expect(MockMediaStream.instances[0].tracks).toEqual([audioTrack]);
     expect(MockMediaRecorder.instances[0].inputStream).toBe(MockMediaStream.instances[0]);
@@ -159,7 +165,20 @@ describe("Recorder", () => {
     render(<Recorder disabled={false} onUse={vi.fn()} />);
     fireEvent.click(screen.getByRole("button", { name: "Record browser tab audio" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("enable “Share tab audio”");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Share tab audio");
+    expect(videoTrack.stop).toHaveBeenCalledOnce();
+    expect(MockMediaRecorder.instances).toHaveLength(0);
+  });
+
+  it("explains that window sharing cannot provide tab audio", async () => {
+    const videoTrack = track("video", "window");
+    const getDisplayMedia = vi.fn().mockResolvedValue(captureStream([], [videoTrack]));
+    installBrowserMedia({ getDisplayMedia });
+
+    render(<Recorder disabled={false} onUse={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Record browser tab audio" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Choose a browser tab, not a window or screen");
     expect(videoTrack.stop).toHaveBeenCalledOnce();
     expect(MockMediaRecorder.instances).toHaveLength(0);
   });

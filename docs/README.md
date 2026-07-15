@@ -30,6 +30,20 @@ The prepared reference machine uses model identifier `qwen3.5-4b`, whisper.cpp c
 
 Windows uses the `.exe` whisper CLI path in `.env`. All application subprocess calls use argument arrays and portable paths rather than shell syntax.
 
+## Browser Recording
+
+Microphone recording uses the standard browser `MediaRecorder` and `getUserMedia` APIs. Browser tab audio recording currently works only in Chromium-based browsers such as Chrome and Edge because PocketTA relies on Chromium's tab-audio display-capture behavior.
+
+For YouTube or another tab source:
+
+1. Open PocketTA in Chrome or Edge.
+2. Click **Record browser tab audio**.
+3. In the browser share picker, choose the browser tab that is playing audio, not a window or full screen.
+4. Enable **Share tab audio**.
+5. Stop recording in PocketTA, preview the captured audio, then use the recording.
+
+If the selected stream has no audio track, PocketTA stops the capture and explains whether the user selected a window/screen or forgot to enable tab audio.
+
 ## Data and Privacy
 
 SQLite and lecture directories are stored below `POCKETTA_DATA_DIR`. Each UUID directory contains the original source and completed transcript/study-pack JSON. Normalized audio is temporary. `DELETE /api/lectures/{id}` cancels owned native work, deletes this directory, and removes its database row.
@@ -44,10 +58,11 @@ The application contains no CDN, telemetry, cloud client, account, model downloa
 4. Upload a consented English recording under 200 MB.
 5. Confirm the job reaches `completed`, uncertain transcript text is marked, and every generated item links to a real transcript segment.
 6. If using CUDA, confirm `/api/health` reports `selected=faster_whisper`.
-7. Correct one transcript segment, confirm the stale study pack disappears, and regenerate without rerunning transcription.
-8. Export Markdown and verify its evidence links target the transcript appendix; test Print / Save as PDF.
-9. Restart PocketTA and confirm the lecture persists.
-10. Delete the lecture and verify both its UUID directory and SQLite row are gone.
+7. In Chrome or Edge, record a short browser tab sample with **Share tab audio** enabled and confirm it can be uploaded.
+8. Correct one transcript segment, confirm the stale study pack disappears, and regenerate without rerunning transcription.
+9. Export Markdown and verify its evidence links target the transcript appendix; test Print / Save as PDF.
+10. Restart PocketTA and confirm the lecture persists.
+11. Delete the lecture and verify both its UUID directory and SQLite row are gone.
 
 Record OS, CPU, GPU, memory, selected transcription backend, whisper.cpp commit or Faster Whisper model, LM Studio version, recording duration, processing time, and peak memory for the hackathon demo.
 
@@ -71,3 +86,5 @@ Run once while connected to establish setup, then twice after disabling Wi-Fi. T
 - **Transcript exists but generation failed:** ensure the loaded model supports JSON-schema output and that reliable speech remains after uncertainty filtering.
 - **Generation failed after transcription:** use "Generate study pack" to retry from the saved transcript.
 - **Recording rejected after upload:** convert corrupt media to WAV/MP3 or use a file under the upload size limit.
+- **Browser tab recording has no audio:** use Chrome or Edge, select the browser tab itself rather than a window or screen, and enable "Share tab audio" in the share picker.
+- **Browser tab recording is unavailable:** Firefox and Safari do not currently provide the required Chromium-compatible tab-audio capture path; use microphone recording or upload a file instead.
