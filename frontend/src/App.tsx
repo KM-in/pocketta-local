@@ -146,7 +146,7 @@ function Welcome({ health, busy, upload }: { health: HealthResponse | null; busy
         <input type="file" accept="audio/*,video/*" disabled={busy} onChange={(event) => void upload(event.target.files?.[0])} />
         <span className="upload-icon">↑</span>
         <strong>{busy ? "Uploading…" : "Drop a lecture recording here"}</strong>
-        <span>or click to choose · up to 15 minutes / 200 MB</span>
+        <span>or click to choose · up to 200 MB</span>
       </label>
       {health && !health.ready && (
         <section className="setup-card">

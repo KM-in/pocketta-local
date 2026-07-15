@@ -40,7 +40,7 @@ The application contains no CDN, telemetry, cloud client, account, model downloa
 1. While online, complete project setup, build whisper.cpp, download `base.en`, optionally prepare Faster Whisper CUDA, and prepare Qwen in LM Studio.
 2. Start LM Studio, load Qwen, start FastAPI and Vite, and confirm `/api/health` reports every component ready.
 3. Disable Wi-Fi.
-4. Upload a consented English recording of less than 15 minutes and 200 MB.
+4. Upload a consented English recording under 200 MB.
 5. Confirm the job reaches `completed`, uncertain transcript text is marked, and every generated item links to a real transcript segment. If using CUDA, confirm `/api/health` reports `selected=faster_whisper`.
 6. Export Markdown and verify its evidence links target the transcript appendix.
 7. Restart PocketTA and confirm the lecture persists.
@@ -68,5 +68,5 @@ Run once while connected to establish setup, then twice after disabling Wi-Fi. T
 - **Whisper missing:** build the pinned whisper.cpp checkout and verify `WHISPER_CLI_PATH`.
 - **LM Studio unavailable:** load Qwen 3.5 4B with a 16K context, start the Developer server, and copy its exact `/v1/models` ID into `.env`.
 - **Transcript exists but generation failed:** ensure the loaded model supports JSON-schema output and that reliable speech remains after uncertainty filtering.
-- **Recording rejected after upload:** convert corrupt media to WAV/MP3 or use a clip within the 15-minute limit.
+- **Recording rejected after upload:** convert corrupt media to WAV/MP3 or use a file under the upload size limit.
 >>>>>>> 0cbddb344da9785bf2fae640d148fc291c510a7c

@@ -25,14 +25,14 @@ def test_media_rejects_corrupt_probe_output(tmp_path: Path) -> None:
     assert len(processes.commands) == 1
 
 
-def test_media_rejects_recording_over_duration_limit(tmp_path: Path) -> None:
+def test_media_allows_recordings_longer_than_15_minutes(tmp_path: Path) -> None:
     processes = FakeProcesses(json.dumps({"format": {"duration": "901"}}))
-    service = MediaService(
-        Settings(pocketta_data_dir=tmp_path, max_audio_minutes=15), processes  # type: ignore[arg-type]
+    service = MediaService(Settings(pocketta_data_dir=tmp_path), processes)  # type: ignore[arg-type]
+    duration = service.normalize(
+        "lecture", tmp_path / "source.mp3", tmp_path / "audio.wav"
     )
-    with pytest.raises(ValueError, match="15-minute"):
-        service.normalize("lecture", tmp_path / "source.mp3", tmp_path / "audio.wav")
-    assert len(processes.commands) == 1
+    assert duration == 901_000
+    assert len(processes.commands) == 2
 
 
 def test_media_normalizes_to_pcm_mono_16khz(tmp_path: Path) -> None:

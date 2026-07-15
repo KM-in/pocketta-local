@@ -56,46 +56,18 @@ async def health(request: Request) -> HealthResponse:
         ),
         "whisper_cli": HealthComponent(
             ready=settings.executable_available(settings.whisper_cli_path),
-<<<<<<< HEAD
             detail=(
                 str(settings.whisper_cli_path)
                 if settings.executable_available(settings.whisper_cli_path)
                 else f"Missing whisper.cpp CLI at {settings.whisper_cli_path}. Build whisper.cpp, or set WHISPER_CLI_PATH in .env."
-=======
-            detail=str(settings.whisper_cli_path),
-            remediation=(
-                "cmake -S vendor/whisper.cpp -B vendor/whisper.cpp/build "
-                "-DCMAKE_BUILD_TYPE=Release && "
-                "cmake --build vendor/whisper.cpp/build --config Release -j 4"
->>>>>>> 0cbddb344da9785bf2fae640d148fc291c510a7c
             ),
         ),
         "whisper_model": HealthComponent(
             ready=settings.whisper_model_path.is_file(),
-<<<<<<< HEAD
-            detail=(
-                str(settings.whisper_model_path)
-                if settings.whisper_model_path.is_file()
-                else f"Missing whisper.cpp model at {settings.whisper_model_path}. Place ggml-base.en.bin there, or set WHISPER_MODEL_PATH in .env."
-            ),
-        ),
-        "whisper_cpp": HealthComponent(
-            ready=whisper_cpp.ready,
-            detail=whisper_cpp.detail,
-        ),
-        "faster_whisper": HealthComponent(
-            ready=faster_whisper.ready,
-            detail=faster_whisper.detail,
-        ),
-        "transcription_backend": HealthComponent(
-            ready=True,
-            detail=f"configured={settings.transcription_backend}; selected={selected_backend}",
-=======
             detail=str(settings.whisper_model_path),
             remediation=(
                 "bash vendor/whisper.cpp/models/download-ggml-model.sh base.en"
             ),
->>>>>>> 0cbddb344da9785bf2fae640d148fc291c510a7c
         ),
     }
     try:

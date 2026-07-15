@@ -30,4 +30,4 @@ Uploads live below generated UUID directories; user filenames are display metada
 
 SQLite stores statuses and JSON results. Completed/failed lectures survive restarts; interrupted jobs return to the queue. The frontend polls every 1.5 seconds while work is active.
 
-The queue is designed for one local user. Generation uses one prompt because P0 caps recordings at 15 minutes. Progress is stage-level, and cancellation is exposed through permanent deletion rather than a separate retry/cancel API.
+The queue is designed for one local user. Generation uses one prompt per recording. Progress is stage-level, and cancellation is exposed through permanent deletion rather than a separate retry/cancel API.

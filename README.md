@@ -4,7 +4,7 @@ PocketTA Local turns lecture recordings into private, offline transcripts and ev
 
 ## What works
 
-- Upload WAV, MP3, M4A, or MP4 recordings up to 15 minutes/200 MB.
+- Upload WAV, MP3, M4A, or MP4 recordings up to 200 MB.
 - Normalize with FFmpeg and transcribe English locally with whisper.cpp.
 - Mark low-confidence transcript segments and exclude them from confident generated evidence.
 - Build notes, concepts, flashcards, and quizzes with Qwen 3.5 4B in LM Studio.

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import gc
 import json
 import math
 from pathlib import Path
@@ -51,27 +52,33 @@ class WhisperCppService:
 class FasterWhisperService:
     def __init__(self, settings: Settings):
         self.settings = settings
-        self._model: Any | None = None
+        self._pipeline: Any | None = None
 
     def transcribe(self, lecture_id: str, audio: Path, duration_ms: int) -> Transcript:
         del lecture_id
-        model = self._load_model()
-        segments, _info = model.transcribe(
-            str(audio),
-            beam_size=self.settings.faster_whisper_beam_size,
-            language="en",
-            vad_filter=self.settings.faster_whisper_vad_filter,
-        )
-        return transcript_from_faster_whisper(
-            list(segments),
-            duration_ms,
-            self.settings.uncertain_confidence_threshold,
-        )
+        pipeline = self._load_pipeline()
+        try:
+            segments, _info = pipeline.transcribe(
+                str(audio),
+                beam_size=self.settings.faster_whisper_beam_size,
+                batch_size=self.settings.faster_whisper_batch_size,
+                language="en",
+                vad_filter=self.settings.faster_whisper_vad_filter,
+            )
+            return transcript_from_faster_whisper(
+                list(segments),
+                duration_ms,
+                self.settings.uncertain_confidence_threshold,
+            )
+        finally:
+            self._pipeline = None
+            del pipeline
+            _release_accelerator_memory()
 
-    def _load_model(self) -> Any:
-        if self._model is None:
+    def _load_pipeline(self) -> Any:
+        if self._pipeline is None:
             try:
-                from faster_whisper import WhisperModel
+                from faster_whisper import BatchedInferencePipeline, WhisperModel
             except ImportError as error:
                 raise RuntimeError(
                     "Faster Whisper is not installed. Run: python -m pip install -r backend/requirements-faster-whisper.txt"
@@ -81,12 +88,13 @@ class FasterWhisperService:
                 if self.settings.faster_whisper_model_path
                 else self.settings.faster_whisper_model_name
             )
-            self._model = WhisperModel(
+            model = WhisperModel(
                 model_ref,
                 device="cuda",
                 compute_type=self.settings.faster_whisper_compute_type,
             )
-        return self._model
+            self._pipeline = BatchedInferencePipeline(model=model)
+        return self._pipeline
 
 
 class TranscriptionService:
@@ -289,6 +297,16 @@ def _cached_faster_whisper_model_exists(model_name: str) -> bool:
             if cached:
                 return True
     return False
+
+
+def _release_accelerator_memory() -> None:
+    gc.collect()
+    try:
+        import torch
+    except ImportError:
+        return
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
 
 
 WhisperService = WhisperCppService

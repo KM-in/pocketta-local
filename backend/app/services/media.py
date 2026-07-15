@@ -46,10 +46,6 @@ class MediaService:
             raise ValueError("FFprobe could not determine the recording duration") from error
         if duration_ms <= 0:
             raise ValueError("The uploaded recording has no playable duration")
-        if duration_ms > self.settings.max_audio_minutes * 60_000:
-            raise ValueError(
-                f"Recording exceeds the {self.settings.max_audio_minutes}-minute P0 limit"
-            )
         self.processes.run(
             lecture_id,
             [
